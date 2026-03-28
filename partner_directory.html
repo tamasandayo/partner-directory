@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>パートナーディレクトリ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #1a56db;
+    --primary-light: #e8f0fe;
+    --bg: #f8f9fc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --text-muted: #64748b;
+    --radius: 12px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-hover: 0 8px 24px rgba(0,0,0,0.13);
+  }
+
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 20px;
+    min-height: 100vh;
+  }
+
+  .filter-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } }
+
+  .filter-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .filter-group input[type="text"] {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-group input[type="text"]:focus {
+    border-color: var(--primary);
+    background: var(--surface);
+  }
+
+  .multi-select-wrapper { position: relative; }
+
+  .multi-select-trigger {
+    width: 100%;
+    padding: 9px 32px 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: border-color 0.2s;
+    appearance: none;
+    position: relative;
+  }
+
+  .multi-select-trigger::after {
+    content: '▾';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .multi-select-trigger.open,
+  .multi-select-trigger:focus {
+    border-color: var(--primary);
+    background: var(--surface);
+    outline: none;
+  }
+
+  .multi-select-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-hover);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 6px;
+  }
+
+  .multi-select-dropdown.open { display: block; }
+
+  .multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+
+  .multi-select-option:hover { background: var(--primary-light); }
+
+  .multi-select-option input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .filter-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .btn-reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .btn-reset:hover { border-color: var(--primary); color: var(--primary); }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  @media (max-width: 900px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .card-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+
+  .card-header { display: flex; align-items: center; gap: 12px; }
+
+  .card-logo {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .card-logo-placeholder {
+    width: 48px; height: 48px;
+    border-radius: 10px;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .card-name { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.3; }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  .card-pref { font-size: 12px; color: var(--text-muted); }
+
+  .card-link {
+    font-size: 12px;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .card-link:hover { text-decoration: underline; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    padding: 24px 16px;
+    overflow-y: auto;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    margin: auto;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    position: relative;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { background: var(--primary-light); color: var(--primary); }
+
+  .modal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+
+  .modal-logo {
+    width: 64px; height: 64px;
+    border-radius: 12px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .modal-logo-placeholder {
+    width: 64px; height: 64px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .modal-name { font-size: 20px; font-weight: 700; color: var(--text); }
+  .modal-section { margin-bottom: 18px; }
+
+  .modal-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .modal-desc { font-size: 14px; color: var(--text); line-height: 1.7; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .modal-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s;
+  }
+
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+  .loading, .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+
+  .loading-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state p { font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="filter-panel">
+  <div class="filter-grid">
+    <div class="filter-group">
+      <label>会社名</label>
+      <input type="text" id="filter-name" placeholder="会社名を入力..." oninput="applyFilters()">
+    </div>
+    <div class="filter-group">
+      <label>都道府県</label>
+      <div class="multi-select-wrapper" id="wrapper-pref">
+        <button class="multi-select-trigger" id="trigger-pref" onclick="toggleDropdown('pref')">すべての地域</button>
+        <div class="multi-select-dropdown" id="dropdown-pref"></div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>事業領域</label>
+      <div class="multi-select-wrapper" id="wrapper-domain">
+        <button class="multi-select-trigger" id="trigger-domain" onclick="toggleDropdown('domain')">すべての事業領域</button>
+        <div class="multi-select-dropdown" id="dropdown-domain"></div>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>提供ソリューション</label>
+      <div class="multi-select-wrapper" id="wrapper-solution">
+        <button class="multi-select-trigger" id="trigger-solution" onclick="toggleDropdown('solution')">すべてのソリューション</button>
+        <div class="multi-select-dropdown" id="dropdown-solution"></div>
+      </div>
+    </div>
+  </div>
+  <div class="filter-status">
+    <span id="result-count">読み込み中...</span>
+    <button class="btn-reset" onclick="resetFilters()">フィルターをリセット</button>
+  </div>
+</div>
+
+<div id="card-grid" class="card-grid">
+  <div class="loading" style="grid-column:1/-1">
+    <div class="loading-spinner"></div>
+    <p>データを読み込み中...</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwz6_I9VEhByBxsE2ull7rVYXszMBXe7SkyoATxefS7kmfHO6X6FnNixZbLFBVZKiI/exec';
+
+const COL = {
+  name:     '会社名',
+  logo:     'ロゴURL',
+  desc:     '説明文',
+  website:  'WebサイトURL',
+  contact:  '問い合わせURL',
+  pref:     '都道府県',
+  domain:   '事業領域',
+  solution: '提供ソリューション',
+};
+
+const PREFS = [
+  '全国対応（オンライン）',
+  '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
+  '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+  '新潟県','富山県','石川県','福井県','山梨県','長野県','岐阜県',
+  '静岡県','愛知県','三重県','滋賀県','京都府','大阪府','兵庫県',
+  '奈良県','和歌山県','鳥取県','島根県','岡山県','広島県','山口県',
+  '徳島県','香川県','愛媛県','高知県','福岡県','佐賀県','長崎県',
+  '熊本県','大分県','宮崎県','鹿児島県','沖縄県'
+];
+
+const TAG_COLORS = [
+  ['#dbeafe','#1d4ed8'],['#dcfce7','#15803d'],['#fef9c3','#a16207'],
+  ['#fee2e2','#b91c1c'],['#ede9fe','#6d28d9'],['#cffafe','#0e7490'],
+  ['#ecfccb','#4d7c0f'],['#ffedd5','#c2410c'],['#fce7f3','#9d174d'],
+  ['#e0e7ff','#4338ca'],
+];
+
+let allData = [];
+let tagColorMap = {};
+let colorIndex = 0;
+
+function getTagColor(tag) {
+  if (!tagColorMap[tag]) { tagColorMap[tag] = TAG_COLORS[colorIndex++ % TAG_COLORS.length]; }
+  return tagColorMap[tag];
+}
+
+function renderTag(text) {
+  const [bg, fg] = getTagColor(text);
+  return `<span class="tag" style="background:${bg};color:${fg}">${escHtml(text)}</span>`;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function splitTags(val) {
+  return val ? String(val).split(',').map(s=>s.trim()).filter(Boolean) : [];
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(GAS_API_URL);
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error(json.message);
+    allData = json.data;
+    buildFilterOptions();
+    applyFilters();
+  } catch(e) {
+    document.getElementById('card-grid').innerHTML =
+      `<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-icon">⚠️</div>
+        <p>データの読み込みに失敗しました。<br>GASのURLを確認してください。</p>
+        <p style="font-size:12px;margin-top:8px;color:#999">${escHtml(e.message)}</p>
+      </div>`;
+    document.getElementById('result-count').textContent = 'エラー';
+  }
+}
+
+function buildFilterOptions() {
+  buildMultiSelect('pref', PREFS);
+  const domains = new Set(), solutions = new Set();
+  allData.forEach(d => {
+    splitTags(d[COL.domain]).forEach(t => domains.add(t));
+    splitTags(d[COL.solution]).forEach(t => solutions.add(t));
+  });
+  buildMultiSelect('domain', [...domains].sort());
+  buildMultiSelect('solution', [...solutions].sort());
+}
+
+function buildMultiSelect(key, options) {
+  document.getElementById(`dropdown-${key}`).innerHTML = options.map(opt =>
+    `<label class="multi-select-option">
+      <input type="checkbox" value="${escHtml(opt)}" onchange="applyFilters()">
+      ${escHtml(opt)}
+    </label>`
+  ).join('');
+}
+
+function toggleDropdown(key) {
+  ['pref','domain','solution'].forEach(k => {
+    if (k !== key) {
+      document.getElementById(`dropdown-${k}`).classList.remove('open');
+      document.getElementById(`trigger-${k}`).classList.remove('open');
+    }
+  });
+  document.getElementById(`dropdown-${key}`).classList.toggle('open');
+  document.getElementById(`trigger-${key}`).classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+  ['pref','domain','solution'].forEach(k => {
+    if (!document.getElementById(`wrapper-${k}`).contains(e.target)) {
+      document.getElementById(`dropdown-${k}`).classList.remove('open');
+      document.getElementById(`trigger-${k}`).classList.remove('open');
+    }
+  });
+});
+
+function getChecked(key) {
+  return [...document.querySelectorAll(`#dropdown-${key} input:checked`)].map(c => c.value);
+}
+
+function updateTriggerLabel(key, def) {
+  const checked = getChecked(key);
+  document.getElementById(`trigger-${key}`).textContent =
+    checked.length === 0 ? def : checked.length === 1 ? checked[0] : `${checked[0]} 他${checked.length-1}件`;
+}
+
+function applyFilters() {
+  updateTriggerLabel('pref','すべての地域');
+  updateTriggerLabel('domain','すべての事業領域');
+  updateTriggerLabel('solution','すべてのソリューション');
+
+  const nameQ     = document.getElementById('filter-name').value.trim().toLowerCase();
+  const prefs     = getChecked('pref');
+  const domains   = getChecked('domain');
+  const solutions = getChecked('solution');
+
+  const filtered = allData.filter(d => {
+    if (nameQ && !String(d[COL.name]||'').toLowerCase().includes(nameQ)) return false;
+    if (prefs.length     && !prefs.some(p     => splitTags(d[COL.pref]).includes(p)))     return false;
+    if (domains.length   && !domains.some(dom => splitTags(d[COL.domain]).includes(dom)))  return false;
+    if (solutions.length && !solutions.some(s => splitTags(d[COL.solution]).includes(s))) return false;
+    return true;
+  });
+
+  renderCards(filtered);
+  document.getElementById('result-count').textContent =
+    `${filtered.length}件 表示中（全${allData.length}件）`;
+}
+
+function logoHtml(d, size) {
+  const cls = size === 'lg' ? 'modal-logo' : 'card-logo';
+  const ph  = size === 'lg' ? 'modal-logo-placeholder' : 'card-logo-placeholder';
+  const initial = escHtml((d[COL.name]||'?')[0]);
+  return d[COL.logo]
+    ? `<img class="${cls}" src="${escHtml(d[COL.logo])}" alt="${escHtml(d[COL.name])}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+       <div class="${ph}" style="display:none">${initial}</div>`
+    : `<div class="${ph}">${initial}</div>`;
+}
+
+function renderCards(list) {
+  const grid = document.getElementById('card-grid');
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">🔍</div><p>条件に一致するパートナーが見つかりませんでした。</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(d => {
+    const idx  = allData.indexOf(d);
+    const pref = splitTags(d[COL.pref]);
+    const dom  = splitTags(d[COL.domain]);
+    return `<div class="card" onclick="openModal(${idx})">
+      <div class="card-header">${logoHtml(d,'sm')}<div class="card-name">${escHtml(d[COL.name])}</div></div>
+      <p class="card-desc">${escHtml(d[COL.desc]||'')}</p>
+      <div class="card-tags">${dom.slice(0,3).map(renderTag).join('')}</div>
+      <div class="card-footer">
+        <span class="card-pref">📍 ${escHtml(pref[0]||'')}</span>
+        ${d[COL.website] ? `<a class="card-link" href="${escHtml(d[COL.website])}" target="_blank" onclick="event.stopPropagation()">サイトを見る →</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(idx) {
+  const d    = allData[idx];
+  const pref = splitTags(d[COL.pref]);
+  const dom  = splitTags(d[COL.domain]);
+  const sol  = splitTags(d[COL.solution]);
+  document.getElementById('modal-content').innerHTML = `
+    <button class="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow=''">✕</button>
+    <div class="modal-header">${logoHtml(d,'lg')}<div class="modal-name">${escHtml(d[COL.name])}</div></div>
+    ${d[COL.desc] ? `<div class="modal-section"><div class="modal-section-label">会社紹介</div><p class="modal-desc">${escHtml(d[COL.desc])}</p></div>` : ''}
+    ${pref.length ? `<div class="modal-section"><div class="modal-section-label">対応エリア</div><div class="modal-tags">${pref.map(renderTag).join('')}</div></div>` : ''}
+    ${dom.length  ? `<div class="modal-section"><div class="modal-section-label">事業領域</div><div class="modal-tags">${dom.map(renderTag).join('')}</div></div>` : ''}
+    ${sol.length  ? `<div class="modal-section"><div class="modal-section-label">提供ソリューション</div><div class="modal-tags">${sol.map(renderTag).join('')}</div></div>` : ''}
+    <div class="modal-actions">
+      ${d[COL.website] ? `<a class="btn-secondary" href="${escHtml(d[COL.website])}" target="_blank">🌐 Webサイトを見る</a>` : ''}
+      ${d[COL.contact] ? `<a class="btn-primary"   href="${escHtml(d[COL.contact])}" target="_blank">✉️ 問い合わせる</a>` : ''}
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function resetFilters() {
+  document.getElementById('filter-name').value = '';
+  ['pref','domain','solution'].forEach(k => {
+    document.querySelectorAll(`#dropdown-${k} input`).forEach(c => c.checked = false);
+  });
+  applyFilters();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadData);
+} else {
+  loadData();
+}
+</script>
+</body>
+</html>
